@@ -41,7 +41,7 @@ var STATE = new WeakMap();
 /**
  * @description
  *
- * Circular Buffer
+ * Circular History
  *
  * Data structure that holds a fixed amount of items of a specific data type.
  * Supports committing new items, and moving backward and forward through the committed items.
@@ -52,7 +52,7 @@ var STATE = new WeakMap();
  * @param {number} capacity - Maximum amount of slots in the buffer
  * @param {string} dataType - Data type of each slot
  */
-function CircularBuffer(capacity, dataType) {
+function CircularHistory(capacity, dataType) {
   if (
     typeof capacity !== "number" ||
     capacity <= 0 ||
@@ -93,7 +93,7 @@ function CircularBuffer(capacity, dataType) {
   });
 }
 
-CircularBuffer.prototype.commit = function(value) {
+CircularHistory.prototype.commit = function(value) {
   var self = STATE.get(this);
   var dataType = self.dataType;
   if (!canCommit(value)(dataType)) {
@@ -108,7 +108,7 @@ CircularBuffer.prototype.commit = function(value) {
   return value;
 };
 
-CircularBuffer.prototype.get = function(index) {
+CircularHistory.prototype.get = function(index) {
   var self = STATE.get(this);
   var buffer = self.buffer;
   if (typeof index === "number") {
@@ -122,7 +122,7 @@ CircularBuffer.prototype.get = function(index) {
   return buffer[self.pointer % self.capacity];
 };
 
-CircularBuffer.prototype.moveBackward = function() {
+CircularHistory.prototype.moveBackward = function() {
   var self = STATE.get(this);
   if (self.usedSlots === 1) return;
   self.pointer--;
@@ -130,7 +130,7 @@ CircularBuffer.prototype.moveBackward = function() {
   return self.buffer[self.pointer % self.capacity];
 };
 
-CircularBuffer.prototype.moveForward = function() {
+CircularHistory.prototype.moveForward = function() {
   var self = STATE.get(this);
   var capacity = self.capacity;
   if (self.usedSlots === capacity) return;
@@ -139,11 +139,20 @@ CircularBuffer.prototype.moveForward = function() {
   return self.buffer[self.pointer % capacity];
 };
 
-CircularBuffer.prototype.clear = function() {
+CircularHistory.prototype.clear = function() {
   var self = STATE.get(this);
   self.usedSlots = DEFAULT_USED_SLOTS;
   self.pointer = DEFAULT_POINTER;
   self.buffer = new Array(self.capacity);
 };
 
-export { CircularBuffer };
+CircularHistory.prototype.dump = function(discardEmptySlots = false) {
+  var self = STATE.get(this);
+  var result = [...self.buffer];
+  if (discardEmptySlots) {
+    result = result.filter((slot) => slot !== undefined);
+  }
+  return result;
+};
+
+export { CircularHistory };

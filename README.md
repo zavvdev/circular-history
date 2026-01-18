@@ -1,11 +1,70 @@
-# Circular Buffer
+# Circular History
 
 Data structure that holds a fixed amount of items of a specific data type. It's designed more for managing history, such as undo-redo functionality, therefore it allows you to overwrite the items after moving backward in order to discard the "redo" history.
 
-- Supports committing new items, and moving backward and forward through them.
+## Usage
 
-- When the buffer is full the wrapping occurs and the oldest items are overwritten.
+1. Create an instance of `CircularHistory` with a specified capacity and data type.
 
-- After moving backward, new commits will overwrite the items ahead of the current pointer.
+```javascript
+var history = new CircularHistory(5, "string");
+```
 
-- Suitable for undo-redo implementations like history management.
+2. Commit new items to the history.
+
+```javascript
+history.commit("First");
+history.commit("Second");
+```
+
+Keep in mind that after moving backward, committing a new item will overwrite the items ahead of the current pointer.
+It was designed this way to facilitate undo-redo functionality by discarding the "redo" history when a new action is taken.
+
+When the capacity is reached, the oldest items will be overwritten in a circular manner.
+
+3. Get the current item.
+
+```javascript
+var currentItem = history.get();
+```
+
+To get the item at a specific index, you can pass the index as an argument.
+
+```javascript
+var specificItem = history.get(0); // Gets the first item
+```
+
+4. Move backward and forward in the history.
+
+```javascript
+history.moveBackward();
+history.moveForward();
+```
+
+Moving backward and forward will adjust the current pointer accordingly and allow you to navigate within specific range which is determined by the number of committed items before navigation. If the number of committed items exceeds the capacity, the range will be limited to the capacity.
+
+5. Clear the history.
+
+```javascript
+history.clear();
+```
+
+6. Get the history array.
+
+```javascript
+var historyArray = history.dump();
+```
+
+This will return an array of all committed items in the history. If capacity has not been reached, the array will contain items with `undefined` values for uncommitted slots.
+
+If you want to get only the committed items, you can pass `true` as an argument.
+
+```javascript
+var committedItems = history.dump(true);
+```
+
+## Running tests
+
+1. `pnpm install`
+
+2. `pnpm test`

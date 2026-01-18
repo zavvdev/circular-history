@@ -1,42 +1,42 @@
 import { test, describe, expect } from "vitest";
-import { CircularBuffer } from "./circular-buffer.js";
+import { CircularHistory } from "./circular-history.js";
 
-describe("CircularBuffer", () => {
+describe("CircularHistory", () => {
   test("should throw if capacity is not a positive integer", () => {
-    expect(() => new CircularBuffer(0, "number")).toThrow();
-    expect(() => new CircularBuffer(-5, "number")).toThrow();
-    expect(() => new CircularBuffer(3.5, "number")).toThrow();
-    expect(() => new CircularBuffer("10", "number")).toThrow();
+    expect(() => new CircularHistory(0, "number")).toThrow();
+    expect(() => new CircularHistory(-5, "number")).toThrow();
+    expect(() => new CircularHistory(3.5, "number")).toThrow();
+    expect(() => new CircularHistory("10", "number")).toThrow();
   });
 
   test("should throw if data type is not allowed", () => {
-    expect(() => new CircularBuffer(5, "invalidType")).toThrow();
-    expect(() => new CircularBuffer(5, 123)).toThrow();
-    expect(() => new CircularBuffer(5, null)).toThrow();
+    expect(() => new CircularHistory(5, "invalidType")).toThrow();
+    expect(() => new CircularHistory(5, 123)).toThrow();
+    expect(() => new CircularHistory(5, null)).toThrow();
   });
 
-  test("should successfully create a CircularBuffer with valid parameters", () => {
-    var bufferNumber = new CircularBuffer(5, "number");
-    expect(bufferNumber).toBeInstanceOf(CircularBuffer);
+  test("should successfully create a CircularHistory with valid parameters", () => {
+    var bufferNumber = new CircularHistory(5, "number");
+    expect(bufferNumber).toBeInstanceOf(CircularHistory);
 
-    var bufferString = new CircularBuffer(10, "string");
-    expect(bufferString).toBeInstanceOf(CircularBuffer);
+    var bufferString = new CircularHistory(10, "string");
+    expect(bufferString).toBeInstanceOf(CircularHistory);
 
-    var bufferBigInt = new CircularBuffer(3, "bigint");
-    expect(bufferBigInt).toBeInstanceOf(CircularBuffer);
+    var bufferBigInt = new CircularHistory(3, "bigint");
+    expect(bufferBigInt).toBeInstanceOf(CircularHistory);
 
-    var bufferBoolean = new CircularBuffer(7, "boolean");
-    expect(bufferBoolean).toBeInstanceOf(CircularBuffer);
+    var bufferBoolean = new CircularHistory(7, "boolean");
+    expect(bufferBoolean).toBeInstanceOf(CircularHistory);
 
-    var bufferSymbol = new CircularBuffer(2, "symbol");
-    expect(bufferSymbol).toBeInstanceOf(CircularBuffer);
+    var bufferSymbol = new CircularHistory(2, "symbol");
+    expect(bufferSymbol).toBeInstanceOf(CircularHistory);
 
-    var bufferObject = new CircularBuffer(4, "object");
-    expect(bufferObject).toBeInstanceOf(CircularBuffer);
+    var bufferObject = new CircularHistory(4, "object");
+    expect(bufferObject).toBeInstanceOf(CircularHistory);
   });
 
   test("should not commit invalid data types", () => {
-    var bufferNumber = new CircularBuffer(5, "number");
+    var bufferNumber = new CircularHistory(5, "number");
     expect(() => bufferNumber.commit("string")).toThrow();
     expect(() => bufferNumber.commit(true)).toThrow();
     expect(() => bufferNumber.commit({})).toThrow();
@@ -44,7 +44,7 @@ describe("CircularBuffer", () => {
     expect(() => bufferNumber.commit(Symbol("sym"))).toThrow();
     expect(() => bufferNumber.commit(10n)).toThrow();
 
-    var bufferString = new CircularBuffer(5, "string");
+    var bufferString = new CircularHistory(5, "string");
     expect(() => bufferString.commit(100)).toThrow();
     expect(() => bufferString.commit(false)).toThrow();
     expect(() => bufferString.commit({})).toThrow();
@@ -52,7 +52,7 @@ describe("CircularBuffer", () => {
     expect(() => bufferString.commit(Symbol("sym"))).toThrow();
     expect(() => bufferString.commit(10n)).toThrow();
 
-    var bufferBigInt = new CircularBuffer(5, "bigint");
+    var bufferBigInt = new CircularHistory(5, "bigint");
     expect(() => bufferBigInt.commit(100)).toThrow();
     expect(() => bufferBigInt.commit("string")).toThrow();
     expect(() => bufferBigInt.commit(true)).toThrow();
@@ -60,7 +60,7 @@ describe("CircularBuffer", () => {
     expect(() => bufferBigInt.commit(Symbol("sym"))).toThrow();
     expect(() => bufferBigInt.commit(10.5)).toThrow();
 
-    var bufferBoolean = new CircularBuffer(5, "boolean");
+    var bufferBoolean = new CircularHistory(5, "boolean");
     expect(() => bufferBoolean.commit(100)).toThrow();
     expect(() => bufferBoolean.commit("string")).toThrow();
     expect(() => bufferBoolean.commit({})).toThrow();
@@ -68,14 +68,14 @@ describe("CircularBuffer", () => {
     expect(() => bufferBoolean.commit(Symbol("sym"))).toThrow();
     expect(() => bufferBoolean.commit(10n)).toThrow();
 
-    var bufferSymbol = new CircularBuffer(5, "symbol");
+    var bufferSymbol = new CircularHistory(5, "symbol");
     expect(() => bufferSymbol.commit(100)).toThrow();
     expect(() => bufferSymbol.commit("string")).toThrow();
     expect(() => bufferSymbol.commit(true)).toThrow();
     expect(() => bufferSymbol.commit({})).toThrow();
     expect(() => bufferSymbol.commit(10n)).toThrow();
 
-    var bufferObject = new CircularBuffer(5, "object");
+    var bufferObject = new CircularHistory(5, "object");
     expect(() => bufferObject.commit(100)).toThrow();
     expect(() => bufferObject.commit("string")).toThrow();
     expect(() => bufferObject.commit(true)).toThrow();
@@ -84,12 +84,12 @@ describe("CircularBuffer", () => {
   });
 
   test("should not get a value from an empty buffer", () => {
-    var buffer = new CircularBuffer(5, "number");
+    var buffer = new CircularHistory(5, "number");
     expect(() => buffer.get()).toThrow();
   });
 
   test("should not allow to get a value by index out of bounds", () => {
-    var buffer = new CircularBuffer(5, "number");
+    var buffer = new CircularHistory(5, "number");
     buffer.commit(10);
     buffer.commit(20);
     expect(() => buffer.get(-1)).toThrow();
@@ -98,7 +98,7 @@ describe("CircularBuffer", () => {
   });
 
   test("should get a value by index correctly", () => {
-    var buffer = new CircularBuffer(5, "number");
+    var buffer = new CircularHistory(5, "number");
     buffer.commit(10);
     buffer.commit(20);
     buffer.commit(30);
@@ -108,7 +108,7 @@ describe("CircularBuffer", () => {
   });
 
   test("should wrap around when capacity is exceeded", () => {
-    var buffer = new CircularBuffer(3, "number");
+    var buffer = new CircularHistory(3, "number");
     buffer.commit(1);
     buffer.commit(2);
     buffer.commit(3);
@@ -121,7 +121,7 @@ describe("CircularBuffer", () => {
   });
 
   test("should move backward and forward correctly (no wrapping)", () => {
-    var buffer = new CircularBuffer(3, "number");
+    var buffer = new CircularHistory(3, "number");
     buffer.commit(1);
     buffer.commit(2);
     buffer.commit(3);
@@ -141,7 +141,7 @@ describe("CircularBuffer", () => {
   });
 
   test("should move backward and forward correctly (with wrapping)", () => {
-    var buffer = new CircularBuffer(3, "number");
+    var buffer = new CircularHistory(3, "number");
     buffer.commit(1);
     buffer.commit(2);
     buffer.commit(3);
@@ -162,7 +162,7 @@ describe("CircularBuffer", () => {
   });
 
   test("should override slots ahead after moving backward", () => {
-    var buffer = new CircularBuffer(2, "number");
+    var buffer = new CircularHistory(2, "number");
     buffer.commit(1);
     expect(buffer.get()).toBe(1);
     buffer.commit(2);
@@ -181,7 +181,7 @@ describe("CircularBuffer", () => {
   });
 
   test("should clear the buffer correctly", () => {
-    var buffer = new CircularBuffer(3, "number");
+    var buffer = new CircularHistory(3, "number");
     buffer.commit(1);
     buffer.commit(2);
     buffer.commit(3);
@@ -190,5 +190,19 @@ describe("CircularBuffer", () => {
     expect(() => buffer.get()).toThrow();
     buffer.commit(4);
     expect(buffer.get()).toBe(4);
+  });
+
+  test("should return back the current buffer state with empty values", () => {
+    var buffer = new CircularHistory(3, "number");
+    buffer.commit(1);
+    buffer.commit(2);
+    expect(buffer.dump()).toEqual([1, 2, undefined]);
+  });
+
+  test("should return back the current buffer state without empty values", () => {
+    var buffer = new CircularHistory(3, "number");
+    buffer.commit(1);
+    buffer.commit(2);
+    expect(buffer.dump(true)).toEqual([1, 2]);
   });
 });
