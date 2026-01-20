@@ -7,14 +7,7 @@
  * List of data types that are allowed to be stored in the items.
  * All items should be of the same data type.
  */
-var ALLOWED_DATA_TYPES = [
-  "number",
-  "string",
-  "bigint",
-  "boolean",
-  "symbol",
-  "object",
-];
+var ALLOWED_DATA_TYPES = ["number", "string", "bigint", "boolean", "symbol", "object"];
 
 var NAVIGATION_LOWER_BOUND = 0;
 var EMPTY_POINTER = -1;
@@ -39,9 +32,7 @@ var isValueTypeAllowed = (value) => {
   return isObject || isTypeAllowed(valueType);
 };
 
-var canCommit = (value, dataType) =>
-  isValueTypeAllowed(value) && typeof value === dataType;
-
+var canCommit = (value, dataType) => isValueTypeAllowed(value) && typeof value === dataType;
 var isItemEmpty = (slot) => slot === undefined;
 var makeIndex = (pointer, capacity) => pointer % capacity;
 
@@ -70,11 +61,7 @@ var STATE = new WeakMap();
  * @param {string} dataType - Data type of each slot
  */
 function CircularHistory(capacity, dataType) {
-  if (
-    typeof capacity !== "number" ||
-    capacity <= 0 ||
-    !Number.isInteger(capacity)
-  ) {
+  if (typeof capacity !== "number" || capacity <= 0 || !Number.isInteger(capacity)) {
     throw new Error(`Capacity must be a positive integer. Got "${capacity}".`);
   }
 
@@ -118,7 +105,7 @@ function CircularHistory(capacity, dataType) {
   });
 }
 
-CircularHistory.prototype.commit = function(value) {
+CircularHistory.prototype.commit = function (value) {
   var self = STATE.get(this);
   var dataType = self.dataType;
 
@@ -139,7 +126,7 @@ CircularHistory.prototype.commit = function(value) {
   self.buffer[makeIndex(++self.pointer, capacity)] = value;
 };
 
-CircularHistory.prototype.current = function() {
+CircularHistory.prototype.current = function () {
   var self = STATE.get(this);
   var buffer = self.buffer;
 
@@ -150,27 +137,21 @@ CircularHistory.prototype.current = function() {
   return isItemEmpty(nextItem) ? FLAGS.empty : nextItem;
 };
 
-CircularHistory.prototype.moveBackward = function() {
+CircularHistory.prototype.moveBackward = function () {
   var self = STATE.get(this);
-
-  if (
-    self.navigationIndex === NAVIGATION_LOWER_BOUND ||
-    self.pointer === EMPTY_POINTER
-  )
-    return;
-
+  if (self.navigationIndex === NAVIGATION_LOWER_BOUND || self.pointer === EMPTY_POINTER) return;
   self.pointer--;
   self.navigationIndex--;
 };
 
-CircularHistory.prototype.moveForward = function() {
+CircularHistory.prototype.moveForward = function () {
   var self = STATE.get(this);
   if (self.navigationIndex === self.navigationUpperBound) return;
   self.pointer++;
   self.navigationIndex++;
 };
 
-CircularHistory.prototype.clear = function() {
+CircularHistory.prototype.clear = function () {
   var self = STATE.get(this);
   self.navigationIndex = NAVIGATION_LOWER_BOUND;
   self.navigationUpperBound = NAVIGATION_LOWER_BOUND;
@@ -178,23 +159,23 @@ CircularHistory.prototype.clear = function() {
   self.buffer = new Array(self.capacity);
 };
 
-CircularHistory.prototype.dump = function(discardHoles = false) {
+CircularHistory.prototype.dump = function (discardHoles = false) {
   var self = STATE.get(this);
   var result = [...self.buffer];
   return discardHoles ? result.filter((slot) => !isItemEmpty(slot)) : result;
 };
 
-CircularHistory.prototype.getCurrentIndex = function() {
+CircularHistory.prototype.getCurrentIndex = function () {
   var self = STATE.get(this);
   return makeIndex(self.pointer, self.capacity);
 };
 
-CircularHistory.prototype.isStartReached = function() {
+CircularHistory.prototype.isStartReached = function () {
   var self = STATE.get(this);
   return self.navigationIndex === NAVIGATION_LOWER_BOUND;
 };
 
-CircularHistory.prototype.isEndReached = function() {
+CircularHistory.prototype.isEndReached = function () {
   var self = STATE.get(this);
   return self.navigationIndex === self.navigationUpperBound;
 };

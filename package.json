@@ -1,12 +1,21 @@
 {
-  "name": "circular-buffer",
-  "private": true,
-  "version": "0.0.0",
+  "name": "circular-history",
+  "version": "1.0.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "description": "Data structure with a fixed number of items of a specific type. Supports adding elements, moving backward and forward with wrapping. Suitable for undo/redo implementations such as history management.",
   "scripts": {
-    "test": "vitest ."
+    "test": "vitest .",
+    "prettier": "prettier --check .",
+    "prettier:fix": "prettier --write .",
+    "build": "esbuild src/circular-history.js --bundle --packages=external --format=esm --minify --keep-names --outfile=./dist/index.js",
+    "prepare": "husky",
+    "prepare-release": "pnpm build && node ./scripts/prepare-release.js"
   },
   "devDependencies": {
+    "esbuild": "^0.27.2",
+    "husky": "^9.1.7",
+    "prettier": "^3.8.0",
     "vite": "npm:rolldown-vite@7.2.5",
     "vitest": "^4.0.17"
   },
