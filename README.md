@@ -25,14 +25,10 @@ When the capacity is reached, the oldest items will be overwritten in a circular
 ### 3. Get the current item.
 
 ```javascript
-var currentItem = history.get();
+var currentItem = history.current();
 ```
 
-To get the item at a specific index, you can pass the index as an argument.
-
-```javascript
-var specificItem = history.get(0); // Gets the first item
-```
+Returns either the current item or `CircularHistory.FLAGS.empty` if current index is `-1` which means there are no committed items yet or you went backwards beyond the first committed item (basically an empty state).
 
 ### 4. Move backward and forward in the history.
 
@@ -42,8 +38,6 @@ history.moveForward();
 ```
 
 Moving backward and forward will adjust the current index accordingly and allow you to navigate within specific range which is determined by the number of committed items before navigation. If the number of committed items exceeds the capacity, the range will be limited to the capacity.
-
-Each call to `moveBackward` or `moveForward` will return the item at the new current index after the move or `CircularHistory.FLAGS.emty` if the buffer is empty or `moveBackward` ended up at the starting position.
 
 ### 5. Clear the history.
 
@@ -116,10 +110,12 @@ function restoreHistorySnapshot(snapshot) {
 }
 
 function undo() {
-  restoreHistorySnapshot(history.moveBackward());
+  history.moveBackward();
+  restoreHistorySnapshot(history.current());
 }
 
 function redo() {
-  restoreHistorySnapshot(history.moveForward());
+  history.moveForward();
+  restoreHistorySnapshot(history.current());
 }
 ```

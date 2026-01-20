@@ -4,8 +4,8 @@
 
 /**
  * @description
- * List of data types that are allowed to be stored in the slots.
- * All slots should be of the same data type.
+ * List of data types that are allowed to be stored in the items.
+ * All items should be of the same data type.
  */
 var ALLOWED_DATA_TYPES = [
   "number",
@@ -16,7 +16,7 @@ var ALLOWED_DATA_TYPES = [
   "object",
 ];
 
-var EMPTY_SLOTS = 0;
+var NAVIGATION_LOWER_BOUND = 0;
 var EMPTY_POINTER = -1;
 
 /**
@@ -39,19 +39,16 @@ var isValueTypeAllowed = (value) => {
   return isObject || isTypeAllowed(valueType);
 };
 
-var canCommit = (value) => (dataType) => {
-  return isValueTypeAllowed(value) && typeof value === dataType;
-};
+var canCommit = (value, dataType) =>
+  isValueTypeAllowed(value) && typeof value === dataType;
 
-var isSlotEmpty = (slot) => slot === undefined;
-
-var isBufferEmpty = (buffer) =>
-  buffer.filter((slot) => !isSlotEmpty(slot)).length === 0;
-
+var isItemEmpty = (slot) => slot === undefined;
 var makeIndex = (pointer, capacity) => pointer % capacity;
 
 /**
  * #State
+ *
+ * @description
  * Using WeakMap to store private state in order to not expose private properties.
  * This will ensure that the reference to the state will be dropped when instances
  * are garbage collected.
@@ -69,7 +66,7 @@ var STATE = new WeakMap();
  * After moving backward, new commits will overwrite the items ahead of the current pointer which
  * makes this data structure suitable for undo-redo implementations like history management.
  *
- * @param {number} capacity - Maximum amount of slots in the buffer
+ * @param {number} capacity - Maximum amount of items in the buffer
  * @param {string} dataType - Data type of each slot
  */
 function CircularHistory(capacity, dataType) {
@@ -87,9 +84,15 @@ function CircularHistory(capacity, dataType) {
 
   STATE.set(this, {
     /**
-     * How many slots are used and can be restored by moveBackward/moveForward.
+     * Represents range [0, navigationUpperBound] of how many items can be used
+     * for navigation.
      */
-    usedSlots: EMPTY_SLOTS,
+    navigationUpperBound: NAVIGATION_LOWER_BOUND,
+
+    /**
+     * Represents current index within the navigation range [0, navigationUpperBound].
+     */
+    navigationIndex: NAVIGATION_LOWER_BOUND,
 
     /**
      * Current pointer. It does not point to an index in the buffer directly.
@@ -98,7 +101,7 @@ function CircularHistory(capacity, dataType) {
     pointer: EMPTY_POINTER,
 
     /**
-     * Total maximum amount of slots.
+     * Total maximum amount of items.
      */
     capacity: capacity,
 
@@ -108,93 +111,92 @@ function CircularHistory(capacity, dataType) {
     dataType: dataType,
 
     /**
-     * Array of slots.
+     * Array of items.
      * Should always be pre-allocated with capacity.
      */
     buffer: new Array(capacity),
   });
 }
 
-CircularHistory.prototype.commit = function (value) {
+CircularHistory.prototype.commit = function(value) {
   var self = STATE.get(this);
   var dataType = self.dataType;
-  if (!canCommit(value)(dataType)) {
+
+  if (!canCommit(value, dataType)) {
     throw new Error(
       `Type of ${value} is invalid. Expected "${dataType}", got "${value === null ? "null" : typeof value}".`,
     );
   }
+
   var capacity = self.capacity;
-  self.pointer++;
-  self.buffer[makeIndex(self.pointer, capacity)] = value;
-  self.usedSlots = Math.min(++self.usedSlots, capacity);
-  return value;
+
+  if (self.pointer === self.capacity - 1) {
+    self.navigationUpperBound = capacity - 1;
+    self.navigationIndex = capacity - 1;
+  } else {
+    self.navigationIndex = ++self.navigationUpperBound;
+  }
+  self.buffer[makeIndex(++self.pointer, capacity)] = value;
 };
 
-CircularHistory.prototype.get = function (index) {
+CircularHistory.prototype.current = function() {
   var self = STATE.get(this);
   var buffer = self.buffer;
-  if (typeof index === "number") {
-    if (index >= self.capacity || index < 0)
-      throw new Error(`Index "${index}" out of bounds.`);
-    return buffer[index];
-  }
-  if (self.usedSlots === EMPTY_SLOTS) return FLAGS.empty;
+
   var pointer = self.pointer;
   if (pointer === EMPTY_POINTER) return FLAGS.empty;
-  return buffer[makeIndex(self.pointer, self.capacity)];
+  var nextItem = buffer[makeIndex(pointer, self.capacity)];
+
+  return isItemEmpty(nextItem) ? FLAGS.empty : nextItem;
 };
 
-CircularHistory.prototype.moveBackward = function () {
+CircularHistory.prototype.moveBackward = function() {
   var self = STATE.get(this);
-  if (self.usedSlots === EMPTY_SLOTS) return FLAGS.empty;
+
+  if (
+    self.navigationIndex === NAVIGATION_LOWER_BOUND ||
+    self.pointer === EMPTY_POINTER
+  )
+    return;
+
   self.pointer--;
-  self.usedSlots--;
-  var nextItem = self.buffer[makeIndex(self.pointer, self.capacity)];
-  return isSlotEmpty(nextItem) ? FLAGS.empty : nextItem;
+  self.navigationIndex--;
 };
 
-CircularHistory.prototype.moveForward = function () {
+CircularHistory.prototype.moveForward = function() {
   var self = STATE.get(this);
-  if (self.pointer === EMPTY_POINTER && isBufferEmpty(self.buffer))
-    return FLAGS.empty;
-  var capacity = self.capacity;
-  var currentItem = self.buffer[makeIndex(self.pointer, capacity)];
-  if (self.usedSlots === capacity) return currentItem;
-  var nextItem = self.buffer[makeIndex(self.pointer + 1, capacity)];
-  if (isSlotEmpty(nextItem)) return currentItem;
+  if (self.navigationIndex === self.navigationUpperBound) return;
   self.pointer++;
-  self.usedSlots++;
-  return self.buffer[makeIndex(self.pointer, capacity)];
+  self.navigationIndex++;
 };
 
-CircularHistory.prototype.clear = function () {
+CircularHistory.prototype.clear = function() {
   var self = STATE.get(this);
-  self.usedSlots = EMPTY_SLOTS;
+  self.navigationIndex = NAVIGATION_LOWER_BOUND;
+  self.navigationUpperBound = NAVIGATION_LOWER_BOUND;
   self.pointer = EMPTY_POINTER;
   self.buffer = new Array(self.capacity);
 };
 
-CircularHistory.prototype.dump = function (discardEmptySlots = false) {
+CircularHistory.prototype.dump = function(discardHoles = false) {
   var self = STATE.get(this);
   var result = [...self.buffer];
-  if (discardEmptySlots) result = result.filter((slot) => !isSlotEmpty(slot));
-  return result;
+  return discardHoles ? result.filter((slot) => !isItemEmpty(slot)) : result;
 };
 
-CircularHistory.prototype.getCurrentIndex = function () {
+CircularHistory.prototype.getCurrentIndex = function() {
   var self = STATE.get(this);
   return makeIndex(self.pointer, self.capacity);
 };
 
-CircularHistory.prototype.isStartReached = function () {
+CircularHistory.prototype.isStartReached = function() {
   var self = STATE.get(this);
-  return self.usedSlots === EMPTY_SLOTS;
+  return self.navigationIndex === NAVIGATION_LOWER_BOUND;
 };
 
-CircularHistory.prototype.isEndReached = function () {
+CircularHistory.prototype.isEndReached = function() {
   var self = STATE.get(this);
-  var nextItem = self.buffer[makeIndex(self.pointer + 1, self.capacity)];
-  return isSlotEmpty(nextItem);
+  return self.navigationIndex === self.navigationUpperBound;
 };
 
 CircularHistory.FLAGS = FLAGS;
