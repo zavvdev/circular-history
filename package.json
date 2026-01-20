@@ -1,6 +1,6 @@
 {
   "name": "circular-history",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "./dist/index.js",
   "description": "Data structure with a fixed number of items of a specific type. Supports adding elements, moving backward and forward with wrapping. Suitable for undo/redo implementations such as history management.",
