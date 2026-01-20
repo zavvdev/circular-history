@@ -83,9 +83,9 @@ describe("CircularHistory", () => {
     expect(() => bufferObject.commit(10n)).toThrow();
   });
 
-  test("should not get a value from an empty buffer", () => {
+  test("should get an empty flag if buffer is empty", () => {
     var buffer = new CircularHistory(5, "number");
-    expect(() => buffer.get()).toThrow();
+    expect(buffer.get()).toEqual(CircularHistory.FLAGS.empty);
   });
 
   test("should not allow to get a value by index out of bounds", () => {
@@ -131,6 +131,8 @@ describe("CircularHistory", () => {
     buffer.moveBackward();
     expect(buffer.get()).toBe(1);
     buffer.moveBackward();
+    expect(buffer.get()).toBe(CircularHistory.FLAGS.empty);
+    buffer.moveForward();
     expect(buffer.get()).toBe(1);
     buffer.moveForward();
     expect(buffer.get()).toBe(2);
@@ -147,16 +149,17 @@ describe("CircularHistory", () => {
     buffer.commit(3);
     buffer.commit(4);
     expect(buffer.get()).toBe(4);
+    expect(buffer.getCurrentIndex()).toBe(0);
     buffer.moveBackward();
     expect(buffer.get()).toBe(3);
     buffer.moveBackward();
     expect(buffer.get()).toBe(2);
     buffer.moveBackward();
+    expect(buffer.get()).toBe(CircularHistory.FLAGS.empty);
+    buffer.moveForward();
     expect(buffer.get()).toBe(2);
     buffer.moveForward();
     expect(buffer.get()).toBe(3);
-    buffer.moveForward();
-    expect(buffer.get()).toBe(4);
     buffer.moveForward();
     expect(buffer.get()).toBe(4);
   });
@@ -187,9 +190,13 @@ describe("CircularHistory", () => {
     buffer.commit(3);
     expect(buffer.get()).toBe(3);
     buffer.clear();
-    expect(() => buffer.get()).toThrow();
+    expect(buffer.get()).toEqual(CircularHistory.FLAGS.empty);
+    expect(buffer.isEndReached()).toBe(true);
+    expect(buffer.isStartReached()).toBe(true);
+    expect(buffer.getCurrentIndex()).toBe(-1);
     buffer.commit(4);
     expect(buffer.get()).toBe(4);
+    expect(buffer.getCurrentIndex()).toBe(0);
   });
 
   test("should return back the current buffer state with empty values", () => {
@@ -204,5 +211,134 @@ describe("CircularHistory", () => {
     buffer.commit(1);
     buffer.commit(2);
     expect(buffer.dump(true)).toEqual([1, 2]);
+  });
+
+  test("should return back the correct current pointer position", () => {
+    var buffer = new CircularHistory(3, "number");
+    expect(buffer.getCurrentIndex()).toBe(-1);
+    buffer.commit(1);
+    expect(buffer.getCurrentIndex()).toBe(0);
+    buffer.commit(2);
+    expect(buffer.getCurrentIndex()).toBe(1);
+    buffer.commit(3);
+    expect(buffer.getCurrentIndex()).toBe(2);
+    buffer.commit(4);
+    expect(buffer.getCurrentIndex()).toBe(0);
+    buffer.commit(5);
+    expect(buffer.getCurrentIndex()).toBe(1);
+    buffer.moveBackward();
+    expect(buffer.getCurrentIndex()).toBe(0);
+    buffer.moveBackward();
+    expect(buffer.getCurrentIndex()).toBe(2);
+    buffer.moveForward();
+    expect(buffer.getCurrentIndex()).toBe(0);
+    buffer.moveForward();
+    expect(buffer.getCurrentIndex()).toBe(1);
+    buffer.moveForward();
+    expect(buffer.getCurrentIndex()).toBe(1);
+    buffer.moveForward();
+    expect(buffer.getCurrentIndex()).toBe(1);
+  });
+
+  test("should correctly identify when start is reached", () => {
+    var buffer = new CircularHistory(3, "number");
+    expect(buffer.isStartReached()).toBe(true);
+    buffer.commit(1);
+    expect(buffer.isStartReached()).toBe(false);
+    buffer.commit(2);
+    expect(buffer.isStartReached()).toBe(false);
+    buffer.moveBackward();
+    expect(buffer.isStartReached()).toBe(false);
+    buffer.moveBackward();
+    expect(buffer.isStartReached()).toBe(true);
+  });
+
+  test("should correctly identify when end is reached", () => {
+    var buffer = new CircularHistory(3, "number");
+    expect(buffer.isEndReached()).toBe(true);
+    buffer.commit(1);
+    buffer.commit(2);
+    expect(buffer.get()).toBe(2);
+    buffer.moveForward();
+    expect(buffer.isEndReached()).toBe(true);
+    buffer.moveBackward();
+    expect(buffer.get()).toBe(1);
+    expect(buffer.isEndReached()).toBe(false);
+    buffer.moveBackward();
+    expect(buffer.get()).toBe(CircularHistory.FLAGS.empty);
+    expect(buffer.isEndReached()).toBe(false);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(1);
+    expect(buffer.isEndReached()).toBe(false);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(2);
+    expect(buffer.isEndReached()).toBe(true);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(2);
+    expect(buffer.isEndReached()).toBe(true);
+  });
+
+  test("should return the last available item when capacity is not reached, the next item is empty and moving forward", () => {
+    var buffer = new CircularHistory(3, "number");
+    buffer.commit(1);
+    buffer.commit(2);
+    expect(buffer.get()).toBe(2);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(2);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(2);
+    buffer.moveBackward();
+    expect(buffer.get()).toBe(1);
+    buffer.moveBackward();
+    expect(buffer.get()).toBe(CircularHistory.FLAGS.empty);
+    buffer.moveBackward();
+    expect(buffer.get()).toBe(CircularHistory.FLAGS.empty);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(1);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(2);
+    buffer.moveForward();
+    expect(buffer.get()).toBe(2);
+  });
+
+  test("moveBackward should return either empty flag or previous item", () => {
+    var buffer = new CircularHistory(2, "number");
+    expect(buffer.moveBackward()).toBe(CircularHistory.FLAGS.empty);
+    buffer.commit(1);
+    expect(buffer.moveBackward()).toBe(CircularHistory.FLAGS.empty);
+    expect(buffer.getCurrentIndex()).toBe(-1);
+    expect(buffer.moveBackward()).toBe(CircularHistory.FLAGS.empty);
+    expect(buffer.getCurrentIndex()).toBe(-1);
+    buffer.commit(2);
+    expect(buffer.getCurrentIndex()).toBe(0);
+    expect(buffer.get()).toBe(2);
+    expect(buffer.moveBackward()).toBe(CircularHistory.FLAGS.empty);
+  });
+
+  test("moveForward should return current item, next item or empty flag if no values were added", () => {
+    var buffer = new CircularHistory(2, "number");
+    expect(buffer.moveForward()).toBe(CircularHistory.FLAGS.empty);
+    buffer.commit(1);
+    expect(buffer.moveForward()).toBe(1);
+    expect(buffer.getCurrentIndex()).toBe(0);
+    expect(buffer.moveForward()).toBe(1);
+    expect(buffer.getCurrentIndex()).toBe(0);
+    buffer.commit(2);
+    expect(buffer.getCurrentIndex()).toBe(1);
+    expect(buffer.get()).toBe(2);
+    expect(buffer.moveForward()).toBe(2);
+    expect(buffer.moveForward()).toBe(2);
+    buffer.commit(3);
+    expect(buffer.getCurrentIndex()).toBe(0);
+    expect(buffer.get()).toBe(3);
+    expect(buffer.moveForward()).toBe(3);
+    expect(buffer.moveForward()).toBe(3);
+  });
+
+  test("commit should return commited value", () => {
+    var buffer = new CircularHistory(2, "number");
+    expect(buffer.commit(10)).toBe(10);
+    expect(buffer.commit(20)).toBe(20);
+    expect(buffer.commit(30)).toBe(30);
   });
 });

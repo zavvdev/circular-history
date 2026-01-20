@@ -4,25 +4,25 @@ Data structure that holds a fixed amount of items of a specific data type. It's 
 
 ## Usage
 
-1. Create an instance of `CircularHistory` with a specified capacity and data type.
+### 1. Create an instance of `CircularHistory` with a specified capacity and data type.
 
 ```javascript
 var history = new CircularHistory(5, "string");
 ```
 
-2. Commit new items to the history.
+### 2. Commit new items to the history.
 
 ```javascript
 history.commit("First");
 history.commit("Second");
 ```
 
-Keep in mind that after moving backward, committing a new item will overwrite the items ahead of the current pointer.
+Keep in mind that after moving backward, committing a new item will overwrite the items ahead of the current index.
 It was designed this way to facilitate undo-redo functionality by discarding the "redo" history when a new action is taken.
 
 When the capacity is reached, the oldest items will be overwritten in a circular manner.
 
-3. Get the current item.
+### 3. Get the current item.
 
 ```javascript
 var currentItem = history.get();
@@ -34,22 +34,24 @@ To get the item at a specific index, you can pass the index as an argument.
 var specificItem = history.get(0); // Gets the first item
 ```
 
-4. Move backward and forward in the history.
+### 4. Move backward and forward in the history.
 
 ```javascript
 history.moveBackward();
 history.moveForward();
 ```
 
-Moving backward and forward will adjust the current pointer accordingly and allow you to navigate within specific range which is determined by the number of committed items before navigation. If the number of committed items exceeds the capacity, the range will be limited to the capacity.
+Moving backward and forward will adjust the current index accordingly and allow you to navigate within specific range which is determined by the number of committed items before navigation. If the number of committed items exceeds the capacity, the range will be limited to the capacity.
 
-5. Clear the history.
+Each call to `moveBackward` or `moveForward` will return the item at the new current index after the move or `CircularHistory.FLAGS.emty` if the buffer is empty or `moveBackward` ended up at the starting position.
+
+### 5. Clear the history.
 
 ```javascript
 history.clear();
 ```
 
-6. Get the history array.
+### 6. Get the history array.
 
 ```javascript
 var historyArray = history.dump();
@@ -61,6 +63,19 @@ If you want to get only the committed items, you can pass `true` as an argument.
 
 ```javascript
 var committedItems = history.dump(true);
+```
+
+### 7. Get the current index.
+
+```javascript
+var currentIndex = history.getCurrentIndex();
+```
+
+### 8. Determine if start/end has been reached
+
+```javascript
+var isAtStart = history.isStartReached();
+var isAtEnd = history.isEndReached();
 ```
 
 ## Running tests
