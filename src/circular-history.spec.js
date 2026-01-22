@@ -429,4 +429,48 @@ describe("CircularHistory", () => {
     history.moveForward();
     expect(history.current()).toBe(4);
   });
+
+  test("should not go beyond limit after wrapping", () => {
+    var history = new CircularHistory(3, "number");
+    history.commit(1);
+    history.commit(2);
+    history.commit(3);
+    expect(history.dump(true)).toEqual([1, 2, 3]);
+    history.commit(4);
+    expect(history.dump(true)).toEqual([4, 2, 3]);
+    history.commit(5);
+    expect(history.dump(true)).toEqual([4, 5, 3]);
+    history.moveBackward();
+    expect(history.current()).toBe(4);
+    history.moveBackward();
+    expect(history.current()).toBe(3);
+    history.moveBackward();
+    expect(history.current()).toBe(3);
+    history.moveBackward();
+    expect(history.current()).toBe(3);
+  });
+
+  test("should handle only one item history correctly", () => {
+    var history = new CircularHistory(2, "number");
+    history.commit(1);
+    expect(history.current()).toBe(1);
+    history.moveBackward();
+    expect(history.current()).toBe(CircularHistory.FLAGS.empty);
+  });
+
+  test("should handle only one item history correctly when limit is 1", () => {
+    var history = new CircularHistory(1, "number");
+    history.commit(1);
+    expect(history.current()).toBe(1);
+    history.moveBackward();
+    expect(history.current()).toBe(CircularHistory.FLAGS.empty);
+  });
+
+  test("should not move forward when the state is empty", () => {
+    var history = new CircularHistory(3, "number");
+    history.moveForward();
+    expect(history.current()).toBe(CircularHistory.FLAGS.empty);
+    history.moveForward();
+    expect(history.current()).toBe(CircularHistory.FLAGS.empty);
+  });
 });

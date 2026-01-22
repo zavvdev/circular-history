@@ -79,11 +79,15 @@ function CircularHistory(capacity, dataType) {
     /**
      * Represents current index within the navigation range [0, navigationUpperBound].
      */
-    navigationIndex: NAVIGATION_LOWER_BOUND,
+    navigatedItemsCount: NAVIGATION_LOWER_BOUND,
 
     /**
      * Current pointer. It does not point to an index in the buffer directly.
      * It is used to calculate the index in the buffer using modulo operation.
+     * Initial value is -1 which means no items have been committed yet.
+     * It's also possible to move back from 0 to -1 to represent the state
+     * where no item is selected but only in case when we at the very beginning.
+     * See moveBackward method for more details.
      */
     pointer: EMPTY_POINTER,
 
@@ -117,43 +121,76 @@ CircularHistory.prototype.commit = function (value) {
 
   var capacity = self.capacity;
 
-  if (self.pointer === self.capacity - 1) {
+  if (self.navigationUpperBound >= capacity - 1) {
     self.navigationUpperBound = capacity - 1;
-    self.navigationIndex = capacity - 1;
+    self.navigatedItemsCount = capacity - 1;
   } else {
-    self.navigationIndex = ++self.navigationUpperBound;
+    self.navigatedItemsCount = ++self.navigationUpperBound;
   }
+
   self.buffer[makeIndex(++self.pointer, capacity)] = value;
 };
 
 CircularHistory.prototype.current = function () {
   var self = STATE.get(this);
+  if (self.pointer === EMPTY_POINTER) return FLAGS.empty;
   var buffer = self.buffer;
-
   var pointer = self.pointer;
-  if (pointer === EMPTY_POINTER) return FLAGS.empty;
-  var nextItem = buffer[makeIndex(pointer, self.capacity)];
-
-  return isItemEmpty(nextItem) ? FLAGS.empty : nextItem;
+  return buffer[makeIndex(pointer, self.capacity)];
 };
 
 CircularHistory.prototype.moveBackward = function () {
   var self = STATE.get(this);
-  if (self.navigationIndex === NAVIGATION_LOWER_BOUND || self.pointer === EMPTY_POINTER) return;
+
+  /**
+   * @description
+   *
+   * If we are about to move back from index 0 to -1, we set the pointer to -1
+   * and do not decrease the navigatedItemsCount because -1 represents the state
+   * where no item is selected. We also can't decrease navigatedItemsCount
+   * in this case because it would go below the NAVIGATION_LOWER_BOUND
+   * in case when we have wrapped around the buffer and haven't reached
+   * the beginning yet, so we need to handle this case separately in order
+   * to have an ability to move back up to the empty state.
+   * If we do not do that, we won't be able to move back to the empty state
+   * and the first item will always be selected.
+   */
+  if (self.pointer === EMPTY_POINTER + 1) {
+    self.pointer = EMPTY_POINTER;
+    return;
+  }
+
+  if (self.navigatedItemsCount === NAVIGATION_LOWER_BOUND || self.pointer === EMPTY_POINTER) return;
   self.pointer--;
-  self.navigationIndex--;
+  self.navigatedItemsCount--;
 };
 
 CircularHistory.prototype.moveForward = function () {
   var self = STATE.get(this);
-  if (self.navigationIndex === self.navigationUpperBound) return;
+  if (self.navigatedItemsCount === self.navigationUpperBound) return;
+
+  /**
+   * @description
+   *
+   * At this point if we at the very beginning and navigationUpperBound has
+   * not been reached yet, which means that we came back to the empty state,
+   * we need to move the pointer to 0 without increasing the navigatedItemsCount
+   * in order to recover from the empty state that we set in the moveBackward method.
+   * If we increase navigatedItemsCount here, we wont reach the navigationUpperBound
+   * because it would be off left by one.
+   */
+  if (self.pointer === EMPTY_POINTER) {
+    self.pointer = EMPTY_POINTER + 1;
+    return;
+  }
+
   self.pointer++;
-  self.navigationIndex++;
+  self.navigatedItemsCount++;
 };
 
 CircularHistory.prototype.clear = function () {
   var self = STATE.get(this);
-  self.navigationIndex = NAVIGATION_LOWER_BOUND;
+  self.navigatedItemsCount = NAVIGATION_LOWER_BOUND;
   self.navigationUpperBound = NAVIGATION_LOWER_BOUND;
   self.pointer = EMPTY_POINTER;
   self.buffer = new Array(self.capacity);
@@ -172,12 +209,12 @@ CircularHistory.prototype.getCurrentIndex = function () {
 
 CircularHistory.prototype.isStartReached = function () {
   var self = STATE.get(this);
-  return self.navigationIndex === NAVIGATION_LOWER_BOUND;
+  return self.navigatedItemsCount === NAVIGATION_LOWER_BOUND || self.pointer === EMPTY_POINTER;
 };
 
 CircularHistory.prototype.isEndReached = function () {
   var self = STATE.get(this);
-  return self.navigationIndex === self.navigationUpperBound;
+  return self.navigatedItemsCount === self.navigationUpperBound;
 };
 
 CircularHistory.FLAGS = FLAGS;
