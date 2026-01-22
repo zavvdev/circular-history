@@ -136,7 +136,8 @@ CircularHistory.prototype.current = function () {
   if (self.pointer === EMPTY_POINTER) return FLAGS.empty;
   var buffer = self.buffer;
   var pointer = self.pointer;
-  return buffer[makeIndex(pointer, self.capacity)];
+  var nextItem = buffer[makeIndex(pointer, self.capacity)];
+  return isItemEmpty(nextItem) ? FLAGS.empty : nextItem;
 };
 
 CircularHistory.prototype.moveBackward = function () {
@@ -167,7 +168,6 @@ CircularHistory.prototype.moveBackward = function () {
 
 CircularHistory.prototype.moveForward = function () {
   var self = STATE.get(this);
-  if (self.navigatedItemsCount === self.navigationUpperBound) return;
 
   /**
    * @description
@@ -179,10 +179,12 @@ CircularHistory.prototype.moveForward = function () {
    * If we increase navigatedItemsCount here, we wont reach the navigationUpperBound
    * because it would be off left by one.
    */
-  if (self.pointer === EMPTY_POINTER) {
+  if (self.pointer === EMPTY_POINTER && self.navigationUpperBound > NAVIGATION_LOWER_BOUND) {
     self.pointer = EMPTY_POINTER + 1;
     return;
   }
+
+  if (self.navigatedItemsCount === self.navigationUpperBound) return;
 
   self.pointer++;
   self.navigatedItemsCount++;

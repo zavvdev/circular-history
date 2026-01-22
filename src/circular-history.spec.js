@@ -451,9 +451,17 @@ describe("CircularHistory", () => {
   });
 
   test("should handle only one item history correctly", () => {
-    var history = new CircularHistory(2, "number");
-    history.commit(1);
+    var history = new CircularHistory(10, "number");
+    history.commit(1); // [1], pointer=0, limit=1, index=1
     expect(history.current()).toBe(1);
+    history.moveBackward();
+    expect(history.current()).toBe(CircularHistory.FLAGS.empty);
+    history.moveForward();
+    expect(history.current()).toBe(1);
+    history.moveForward();
+    expect(history.current()).toBe(1);
+    history.moveBackward();
+    expect(history.current()).toBe(CircularHistory.FLAGS.empty);
     history.moveBackward();
     expect(history.current()).toBe(CircularHistory.FLAGS.empty);
   });
